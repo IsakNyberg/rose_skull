@@ -1,18 +1,19 @@
 import time
 from struct import unpack
-import asyncio
-import websockets
+from web_socket import *
+import socket
 
 from game import Game
 from game_error import GameError
 
-ip = '85.229.19.61'
-port = 63834
+localIP = '85.229.19.61'
+localPort = 63834
 bufferSize = 1024
 
-UDPServerSocket = socket.socket(family=socket.AF_INET, type=socket.SOCK_STREAM)
-UDPServerSocket.bind((localIP, localPort))
-print("Web server up and listening")
+TCPsocket = socket.socket(family=socket.AF_INET, type=socket.SOCK_STREAM)
+TCPsocket.bind((socket.gethostname(), localPort))
+TCPsocket.listen(10)
+print("UDP server up and listening")
 
 
 max_length = 1024
@@ -20,19 +21,34 @@ def flood(connections, game, message):
     try:
         for index in range(len(connections)):
             ip_address = connections[index]
-            UDPServerSocket.sendto(b'1'+game.to_bytes(index), ip_address)
-            UDPServerSocket.sendto(b'2'+message.to_bytes(), ip_address)
+            frame = encode_frame(b'1' + game.to_bytes(index))
+            TCPsocket.sendto(frame, ip_address)
+            frame = encode_frame(b'2' + message.to_bytes())
+            TCPsocket.sendto(frame, ip_address)
 
     except IndexError:
         print('Index error in flood')
 
 
-async def receive(websocket):
-    async for message in websocket:
-        message, address = UDPServerSocket.recvfrom(bufferSize)
+# Press the green button in the gutter to run the script.
+if __name__ == '__main__':
+    GAME = Game()
+    connections = []
+
+    server_message = GameError('Waiting.')
+    while len(connections) < 255:
+        TCPsocket.listen(bufferSize)
+        CONNECTION, address = TCPsocket.accept()
+        with CONNECTION:
+            print('Connected by', address)
+            while True:
+                MESSAGE = CONNECTION.recv(1024)
+                if not MESSAGE:
+                    break
         print(MESSAGE, address)
         if address not in connections:
-            connections.append(address)
+            handshake(MESSAGE)
+            connections.append(CONNECTION)
             GAME.join(MESSAGE.decode('utf-8'))
             flood(connections, GAME, server_message)
             continue
@@ -51,7 +67,7 @@ async def receive(websocket):
         command, arg = unpack('BB', MESSAGE)
         if command not in (0, 1, 2, 3):
             continue
-        if arg not in range(4 * len(connections)):
+        if arg not in range(4*len(connections)):
             continue
 
         try:
@@ -59,18 +75,3 @@ async def receive(websocket):
         except GameError as e:
             server_message = e
         flood(connections, GAME, server_message)
-
-
-async def main():
-    async with websockets.serve(receive, ip, port):
-        await asyncio.Future()  # run forever
-
-
-
-# Press the green button in the gutter to run the script.
-if __name__ == '__main__':
-    GAME = Game()
-    connections = []
-
-    server_message = GameError('Waiting.')
-

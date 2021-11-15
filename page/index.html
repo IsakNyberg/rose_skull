@@ -4,7 +4,9 @@
 
 <script type="text/javascript">
 
-const socket = new ('ws://85.229.19.61:63834/ws');
+const websocket = new WebSocket('ws://85.229.19.61:63834/ws');
+const event = {type: "play", column: 3};
+websocket.send(JSON.stringify(event));
 socket.onopen = function() {console.log("socket opened :)");};
 socket.onclose = function(e) {console.log("websocket closed! code:" +e.code+ " reason:" + e.reason);};
 socket.onerror = function(e) {console.log('websocket error!');};

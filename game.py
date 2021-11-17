@@ -78,7 +78,7 @@ class Game:
         if amount <= self.current_bet:
             raise GameError('Cannot bet lower or equal to current bet')
         if amount > self.number_placed_cards():
-            raise GameError('Bet more than the number of placed cards')
+            raise GameError('cannot bet more than the number of placed cards')
         self.current_bet = amount
 
         if amount == self.number_placed_cards():

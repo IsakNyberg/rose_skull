@@ -45,7 +45,7 @@ def socket_handler(socket, id, game, game_messages):
             time.sleep(5)
         while game.ongoing:
             if game.current_player_index != id:
-                frame1 = encode_frame(b'1' + game.to_bytes(index))
+                frame1 = encode_frame(b'1' + game.to_bytes(id))
                 socket.sendall(frame1)
                 frame2 = encode_frame(b'2' + game_messages[-1].to_bytes())
                 socket.sendall(frame2)
@@ -73,7 +73,11 @@ def socket_handler(socket, id, game, game_messages):
 if __name__ == '__main__':
     GAME = Game()
     THREADS = []
-    GAME_MESSAGES = [GameError('Waiting.')]
+    GAME_MESSAGES = [GameError('Waiting for game to start.')]
+    GAME.join('aaa')
+    GAME.join('bbb')
+    GAME.join('cccc')
+    GAME.join('cccccc')
 
     try:
         while len(THREADS) < 20:
@@ -84,6 +88,7 @@ if __name__ == '__main__':
             if len(socket_name) > 0:
                 print('Success')
                 GAME.join(socket_name)
+                GAME.start()
                 th = threading.Thread(
                     target=socket_handler,
                     args=(new_conn, len(GAME.players)-1, GAME, GAME_MESSAGES)

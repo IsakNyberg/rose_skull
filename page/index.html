@@ -4,6 +4,7 @@
   <meta content="text/html;charset=utf-8" http-equiv="Content-Type">
   <meta content="utf-8" http-equiv="encoding">
 
+<script src="jspack.js"></script>
 <script type="text/javascript">
 main = function() {
   var name = prompt("Name:", "");
@@ -21,44 +22,83 @@ main = function() {
     //clear("Connection Closed!");
   };
   socket.onmessage = function(e) {
-    console.log("recieved:\n" + e.data);
-    /*
-    const arr = e.data.split("\n");
-    const first = arr[0];
-    if (isNaN(parseInt(first))) {
-      // first line is a non-number => this is a message
-      clear(first);
+    //console.log("recieved:\n" + e.data);
+    if (e.data[0] == "1") {
+      display_game(e.data);
+    } else if (e.data[0] == "2") {
+      show_message(e.data);
     } else {
-      // first line is a number => this is a question
-      q_id = first;
-      const opt_count = arr.length - 2;
-
-      clear(arr[1]);
-
-      const d = document.getElementById("buttons");
-      for (let a_id=0; a_id<opt_count; a_id++) {
-        var butt = document.createElement("button");
-        butt.innerHTML = arr[a_id+2];
-        butt.style.width = "200px";
-        butt.style.height = "200px";
-        butt.style.margin = "2px";
-        butt.onclick = function() {submitAns(q_id, a_id)};
-
-        d.appendChild(butt);
-      }
-    }*/
+      console.log("Could not parse message.");
+    }
   };
-  /*
-  function clear(msg) {
-    document.getElementById("buttons").innerHTML = "";  // delete buttons
-    document.getElementById("title").innerHTML = msg;
-  }
 
-  function submitAns(qID, aID) {
-    clear("Waiting Patiently...");
-    socket.send(String(qID) + String(aID));
-    console.log("guessed " + aID + " for question " + qID);
-  }*/
+  function show_message(msg) {
+    //document.getElementById("message").innerHTML = "";  // delete buttons
+    msg = msg.substring(1);
+    document.getElementById('message').innerHTML = msg;
+  };
+
+  function display_game(data) {
+    var struct = new JSPack();
+    data = data.substring(1);
+    const encoder = new TextEncoder()
+    const bytes = encoder.encode(data)
+
+    var start = 0;
+    var end = 5;
+    var game_info_bytes = bytes.slice(start, end);
+    var unpack1 = struct.Unpack('BBBBB', game_info_bytes, 0);
+
+    var ongoing = unpack1[0];
+    var current_player_index = unpack1[1];
+    var current_bet = unpack1[2];
+    var num_players = unpack1[3];
+    var num_flipped = unpack1[4];
+
+    for (let i = 0; i < num_players; i++){
+      start = end
+      end += 8
+      draw_player(bytes.slice(start, end));
+    }
+    start = end;
+    end += num_flipped;
+    draw_flipped(bytes.slice(start, end));
+
+    if (num_players == current_player_index){
+      var own_turn = true;
+    } else {
+      var own_turn = false;
+    }
+    draw_own_player(own_turn, bytes.slice(end));
+
+  };
+
+  function draw_player(bytes) {
+    var struct = new JSPack();
+    var unpack = struct.Unpack('4sBBBB', bytes);
+    var name = unpack[0];
+    var score = unpack[1];
+    var has_passed = unpack[2];
+    var hand_len = unpack[3];
+    var board_len = unpack[4];
+  };
+
+  function draw_flipped(bytes) {
+    var struct = new JSPack();
+    var unpack = struct.Unpack('B'.repeat(bytes.length), bytes);
+  };
+
+  function draw_own_player(own_turn, bytes) {
+    var struct = new JSPack();
+    var unpack = struct.Unpack('4sBBBB', bytes.slice(0, 8));
+    var name = unpack[0];
+    var score = unpack[1];
+    var has_passed = unpack[2];
+    var hand_len = unpack[3];
+    var board_len = unpack[4];
+    var hand = struct.Unpack('B'.repeat(hand_len), bytes.slice(8, 8+hand_len));
+    var board = struct.Unpack('B'.repeat(board_len), bytes.slice(8+hand_len));
+  };
 }
 window.onload = main;
 </script>
@@ -160,7 +200,7 @@ window.onload = main;
   <body height="100%" style="background-color:#a0a0a0;">
     <div class="everything">
       <div class="left">
-        <div class="player_list">
+        <div class="player_list" id="player_list">
           <div class="player">
             <div class="player_text">Isak</div>
             <div class="card_row">
@@ -260,7 +300,7 @@ window.onload = main;
           <div class="board_text">
             Game is ongoing
           </div>
-          <div class="board_text">
+          <div class="board_text" id="message">
             Cannot place that card
           </div>
           <div class="board_text">

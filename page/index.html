@@ -10,7 +10,7 @@ main = function() {
   var name = prompt("Name:", "");
   const socket = new WebSocket('ws://85.229.19.61:63834/ws/' + name);
   socket.onopen = function() {
-    console.log("socket opened :)");
+    console.log("socket opened");
   };
 
   socket.onerror = function(e) {
@@ -41,8 +41,8 @@ main = function() {
   function display_game(data) {
     var struct = new JSPack();
     data = data.substring(1);
-    const encoder = new TextEncoder()
-    const bytes = encoder.encode(data)
+    const encoder = new TextEncoder();
+    const bytes = encoder.encode(data);
 
     var start = 0;
     var end = 5;
@@ -55,13 +55,34 @@ main = function() {
     var num_players = unpack1[3];
     var num_flipped = unpack1[4];
 
-    var player_list = document.getElementById('player_list')
+    var player_list = document.getElementById('player_list');
     while(player_list.firstChild) {
       player_list.removeChild(player_list.lastChild);
     }
+    var board = document.getElementById('placed_card_row');
+    while(board.firstChild) {
+      board.removeChild(board.lastChild);
+    }
+    var hand = document.getElementById('hand_card_row');
+    while(hand.firstChild) {
+      hand.removeChild(hand.lastChild);
+    }
+
+    /*
+    <div class="board_text" id="game_status"></div>
+    <div class="board_text" id="message"></div>
+    <div class="board_text" id="current_bet"></div>
+    */
+    if (ongoing == 0){
+      document.getElementById('game_status').innerHTML = "Waiting to start.";
+    } else {
+      document.getElementById('game_status').innerHTML = "Game is ongoing.";
+    }
+    document.getElementById('current_bet').innerHTML = "Current bet: " + current_bet;
+
     for (let i = 0; i < num_players; i++){
-      start = end
-      end += 8
+      start = end;
+      end += 8;
       draw_player(bytes.slice(start, end), i, current_player_index);
     }
     start = end;
@@ -138,7 +159,7 @@ main = function() {
       card_row.appendChild(card_div);
 
       var card_image = document.createElement("IMG");
-      card_image.src = 'back.png'
+      card_image.src = 'back.png';
       card_image.className = 'back';
       card_div.appendChild(card_image);
     }
@@ -149,7 +170,7 @@ main = function() {
     player_div.appendChild(card_stack_div);
     //card stack image
     var card_image = document.createElement("IMG");
-    card_image.src = 'back.png'
+    card_image.src = 'back.png';
     card_image.className = 'back';
     card_stack_div.appendChild(card_image);
     // card stack number
@@ -160,13 +181,53 @@ main = function() {
   };
 
   function draw_flipped(bytes) {
+    /*
+    <div class="card_row">
+      <div class="card_div">
+          <img src="rose.png" alt="rose" class="rose">
+      </div>
+      <div class="card_div">
+        <img src="rose.png" alt="rose" class="rose">
+      </div>
+      <div class="card_div">
+        <img src="skull.png" alt="skull" class="skull">
+      </div>
+    </div>
+    */
     var struct = new JSPack();
     var unpack = struct.Unpack('B'.repeat(bytes.length), bytes);
+    var board = document.getElementById('board');
+
+    var card_row = document.getElementById('board_card_row');
+    for (let i = 0; i < unpack.length; i++) {
+      var card_div = document.createElement('div');
+      card_div.className = 'card_div';
+      card_row.appendChild(card_div);
+
+      var card_image = document.createElement("IMG");
+      if (unpack[i] == 0) {
+        card_image.src = 'skull.png'
+        card_image.className = 'skull';
+      } else if (unpack[i] == 1) {
+        card_image.src = 'rose.png'
+        card_image.className = 'rose';
+      }
+      card_div.appendChild(card_image);
+    }
   };
 
   function draw_own_player(own_turn, bytes) {
+    /*            
+    <div class="card_div">
+      <img src="rose.png" alt="rose" class="rose">
+    </div>
+    <div class="card_div">
+      <img src="rose.png" alt="rose" class="rose">
+    </div>
+    */
     var struct = new JSPack();
     var unpack = struct.Unpack('4sBBBB', bytes.slice(0, 8));
+
     var name = unpack[0];
     var score = unpack[1];
     var has_passed = unpack[2];
@@ -174,104 +235,147 @@ main = function() {
     var board_len = unpack[4];
     var hand = struct.Unpack('B'.repeat(hand_len), bytes.slice(8, 8+hand_len));
     var board = struct.Unpack('B'.repeat(board_len), bytes.slice(8+hand_len));
+
+    if (score > 0){
+      name += '*';
+    }
+    var name_colour = 'white';
+    if (own_turn){
+      name_colour = 'red';
+    } else if (has_passed > 0){
+      name_colour = 'gray';
+    }
+    document.getElementById('player_name').innerHTML = name;
+    document.getElementById('player_name').style.color = name_colour;
+    
+    let card_row = document.getElementById('placed_card_row');
+    for (let i = 0; i < board_len; i++) {
+      var card_div = document.createElement('div');
+      card_div.className = 'card_div';
+      card_row.appendChild(card_div);
+
+      var card_image = document.createElement("IMG");
+      if (board[i] == 0) {
+        card_image.src = 'skull.png';
+        card_image.className = 'skull';
+      } else if (board[i] == 1) {
+        card_image.src = 'rose.png';
+        card_image.className = 'rose';
+      }
+      card_div.appendChild(card_image);
+    }
+    card_row = document.getElementById('hand_card_row');
+    for (let i = 0; i < hand_len; i++) {
+      var card_div = document.createElement('div');
+      card_div.className = 'card_div';
+      card_row.appendChild(card_div);
+
+      var card_image = document.createElement("IMG");
+      if (hand[i] == 0) {
+        card_image.src = 'skull.png';
+        card_image.className = 'skull';
+      } else if (hand[i] == 1) {
+        card_image.src = 'rose.png';
+        card_image.className = 'rose';
+      }
+      card_div.appendChild(card_image);
+    }
   };
 }
 window.onload = main;
 </script>
-
-
-    <style>
-      /* text centered over image */
-      .everything{
-        width: 100%;
-        height: 100%;
-      }
-      .left{
-        position: relative;
-        float: right;
-        right: 55%;
-      }
-      .right{
-        margin-top: 50px;
-        position: relative;
-        float: left;
-        left: 55%;
-      }
-      .hand{
-        width: 275px;
-      }
-      .hand_text{
-        font-family: "Lucida Console", "Courier New", monospace;
-        font-size: 20px; 
-        position: relative;
-        color: white;
-      }
-      .board{
-      }
-      .board_text{
-        font-family: "Lucida Console", "Courier New", monospace;
-        font-size: 30px; 
-        text-align: left;
-        color: white;
-      }
-      .player_list{
-      }
-      .player {
-      }
-      .card_row {
-        width: 275px;
-        float: left;
-        display: block; 
-        border-spacing: 5px;
-      }
-      .card_stack {
-        width: 60px;
-        height: 75px;
-        float: left;
-        display: block; 
-        border-spacing: 5px;
-      }
-      .card_div{
-        width:50px;
-        height:75px;
-        display: table-cell;
-        margin-top: 0px;
-        margin-bottom: 5px;
-        margin-right: 5px;
-        margin-left: 0px;
-        z-index: 2;
-      }
-      .card_text {
-        font-family: "Lucida Console", "Courier New", monospace;
-        font-size: 50px; 
-        position: relative;
-        color: white;
-        top: -93%;
-        left: 18%;
-      }
-      .player_text {
-        font-family: "Lucida Console", "Courier New", monospace;
-        font-size: 50px; 
-        position: relative;
-        color: white;
-        top: -50%;
-        left: 30%;
-      }
-      .rose {
-        width:50px;
-        height:75px;
-      }
-      .skull {
-        width:50px;
-        height:75px;
-      }
-      .back {
-        width:50px;
-        height:75px;
-        margin-left: 0px;
-      }
-    </style>
-    <title>Rose and Skull</title>
+  <style>
+    /* text centered over image */
+    .everything{
+      width: 100%;
+      height: 100%;
+    }
+    .left{
+      position: relative;
+      float: right;
+      right: 55%;
+    }
+    .right{
+      margin-top: 50px;
+      position: relative;
+      float: left;
+      left: 55%;
+    }
+    .hand{
+      width: 275px;
+    }
+    .hand_text{
+      font-family: "Lucida Console", "Courier New", monospace;
+      font-size: 20px; 
+      position: relative;
+      color: white;
+    }
+    .board{
+    }
+    .board_text{
+      font-family: "Lucida Console", "Courier New", monospace;
+      font-size: 30px; 
+      text-align: left;
+      color: white;
+    }
+    .player_list{
+    }
+    .player {
+    }
+    .card_row {
+      width: 275px;
+      float: left;
+      display: block; 
+      border-spacing: 5px;
+    }
+    .card_stack {
+      width: 60px;
+      height: 75px;
+      float: left;
+      display: block; 
+      border-spacing: 5px;
+    }
+    .card_div{
+      width:50px;
+      height:75px;
+      display: table-cell;
+      margin-top: 0px;
+      margin-bottom: 5px;
+      margin-right: 5px;
+      margin-left: 0px;
+      z-index: 2;
+    }
+    .card_text {
+      font-family: "Lucida Console", "Courier New", monospace;
+      font-size: 50px; 
+      position: relative;
+      color: white;
+      top: -93%;
+      left: 18%;
+    }
+    .player_text {
+      font-family: "Lucida Console", "Courier New", monospace;
+      font-size: 50px; 
+      position: relative;
+      color: white;
+      top: -50%;
+      left: 30%;
+    }
+    .rose {
+      width:50px;
+      height:75px;
+    }
+    .skull {
+      width:50px;
+      height:75px;
+    }
+    .back {
+      width:50px;
+      height:75px;
+      margin-left: 0px;
+    }
+  </style>
+  <title>Rose and Skull</title>
   </head>
   <body height="100%" style="background-color:#a0a0a0;">
     <div class="everything">
@@ -279,54 +383,18 @@ window.onload = main;
         <div class="player_list" id="player_list"></div>
       </div>
       <div class="right"> 
-        <div class="board">
-          <div class="board_text">
-            Game is ongoing
-          </div>
-          <div class="board_text" id="message">
-            Cannot place that card
-          </div>
-          <div class="board_text">
-            Current bet: 0
-          </div>
-          <div class="card_row">
-            <div class="card_div">
-                <img src="rose.png" alt="rose" class="rose">
-              </div>
-              <div class="card_div">
-                <img src="rose.png" alt="rose" class="rose">
-              </div>
-              <div class="card_div">
-                <img src="skull.png" alt="skull" class="skull">
-              </div>
-          </div>
+        <div class="board" id="board">
+          <div class="board_text" id="game_status"></div>
+          <div class="board_text" id="message"></div>
+          <div class="board_text" id="current_bet"></div>
+          <div class="card_row" id="board_card_row"></div>
         </div>
         <div class="hand">
-          <div class="player_text">
-            Isak
-          </div>
-          <div class="hand_text">
-            Placed:
-          </div>
-          <div class="card_row">
-            <div class="card_div">
-                <img src="rose.png" alt="rose" class="rose">
-              </div>
-              <div class="card_div">
-                <img src="rose.png" alt="rose" class="rose">
-              </div>
-          </div>
-          <div class="hand_text">
-            Hand:
-          </div>
-          <div class="card_row">
-            <div class="card_div">
-              <img src="rose.png" alt="rose" class="rose">
-            </div>
-            <div class="card_div">
-              <img src="skull.png" alt="skull" class="skull">
-            </div>
-          </div>
+          <div class="player_text" id="player_name"></div>
+          <div class="hand_text">Placed:</div>
+          <div class="card_row" id="placed_card_row"></div>
+          <div class="hand_text">Hand:</div>
+          <div class="card_row" id="hand_card_row"></div>
         </div>
       </div>
     </div>

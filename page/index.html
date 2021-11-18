@@ -55,10 +55,14 @@ main = function() {
     var num_players = unpack1[3];
     var num_flipped = unpack1[4];
 
+    var player_list = document.getElementById('player_list')
+    while(player_list.firstChild) {
+      player_list.removeChild(player_list.lastChild);
+    }
     for (let i = 0; i < num_players; i++){
       start = end
       end += 8
-      draw_player(bytes.slice(start, end));
+      draw_player(bytes.slice(start, end), i, current_player_index);
     }
     start = end;
     end += num_flipped;
@@ -73,7 +77,23 @@ main = function() {
 
   };
 
-  function draw_player(bytes) {
+  function draw_player(bytes, index, current_player_index) {
+    /*
+    <div class="player">
+      <div class="player_text">name</div>
+      <div class="card_row">
+        <div class="card_div">
+          <img src="back.png" alt="Back" class="back">
+        </div>
+      </div>
+      <div class="card_stack">
+        <div class="card_div">
+          <img src="back.png" alt="Back" class="back">
+          <div class="card_text">1</div>
+        </div>
+      </div>
+    </div>
+    */
     var struct = new JSPack();
     var unpack = struct.Unpack('4sBBBB', bytes);
     var name = unpack[0];
@@ -81,6 +101,62 @@ main = function() {
     var has_passed = unpack[2];
     var hand_len = unpack[3];
     var board_len = unpack[4];
+
+    if (score > 0){
+      name += '*';
+    }
+    var name_colour = 'white';
+    if (index == current_player_index){
+      name_colour = 'red';
+    } else if (has_passed > 0){
+      name_colour = 'gray';
+    }
+
+    //player list
+    var player_list = document.getElementById('player_list');
+
+    //player div
+    var player_div = document.createElement('div');
+    player_div.className = 'player';
+    player_list.appendChild(player_div);
+
+    //player text div
+    var player_text_div = document.createElement('div');
+    player_text_div.className = 'player_text';
+    player_text_div.innerHTML = name;
+    player_text_div.style.color = name_colour;
+    player_div.appendChild(player_text_div);
+
+    //player card row
+    var card_row = document.createElement('div');
+    card_row.className = 'card_row';
+    player_div.appendChild(card_row);
+    //player cards in row
+    for (let i = 0; i < hand_len; i++){
+      var card_div = document.createElement('div');
+      card_div.className = 'card_div';
+      card_row.appendChild(card_div);
+
+      var card_image = document.createElement("IMG");
+      card_image.src = 'back.png'
+      card_image.className = 'back';
+      card_div.appendChild(card_image);
+    }
+
+    //card stack
+    var card_stack_div = document.createElement('div');
+    card_stack_div.className = 'card_stack';
+    player_div.appendChild(card_stack_div);
+    //card stack image
+    var card_image = document.createElement("IMG");
+    card_image.src = 'back.png'
+    card_image.className = 'back';
+    card_stack_div.appendChild(card_image);
+    // card stack number
+    var card_text_div = document.createElement('div');
+    card_text_div.className = 'card_text';
+    card_text_div.innerHTML = board_len.toString();
+    card_stack_div.appendChild(card_text_div);
   };
 
   function draw_flipped(bytes) {
@@ -170,8 +246,8 @@ window.onload = main;
         font-size: 50px; 
         position: relative;
         color: white;
-        top: -50%;
-        left: 24%;
+        top: -93%;
+        left: 18%;
       }
       .player_text {
         font-family: "Lucida Console", "Courier New", monospace;
@@ -200,100 +276,7 @@ window.onload = main;
   <body height="100%" style="background-color:#a0a0a0;">
     <div class="everything">
       <div class="left">
-        <div class="player_list" id="player_list">
-          <div class="player">
-            <div class="player_text">Isak</div>
-            <div class="card_row">
-              <div class="card_div">
-                <img src="back.jpeg" alt="Back" class="back">
-              </div>
-              <div class="card_div">
-                <img src="back.jpeg" alt="Back" class="back">
-              </div>
-              <div class="card_div">
-                <img src="back.jpeg" alt="Back" class="back">
-              </div>
-              <div class="card_div">
-                <img src="back.jpeg" alt="Back" class="back">
-              </div>
-            </div> 
-            <div class="card_stack">
-              <div class="card_div">
-                <img src="back.jpeg" alt="Back" class="back">
-                <div class="card_text">1</div>
-              </div>
-            </div>
-          </div> 
-          <div class="player">
-            <div class="player_text">Greg</div>
-            <div class="card_row">
-              <div class="card_div">
-                <img src="back.jpeg" alt="Back" class="back">
-              </div>
-              <div class="card_div">
-                <img src="back.jpeg" alt="Back" class="back">
-              </div>
-              <div class="card_div">
-                <img src="back.jpeg" alt="Back" class="back">
-              </div>
-              <div class="card_div">
-                <img src="back.jpeg" alt="Back" class="back">
-              </div>
-            </div> 
-            <div class="card_stack">
-              <div class="card_div">
-                <img src="back.jpeg" alt="Back" class="back">
-                <div class="card_text">2</div>
-              </div>
-            </div>
-          </div> 
-          <div class="player">
-            <div class="player_text">Jack</div>
-            <div class="card_row">
-              <div class="card_div">
-                <img src="back.jpeg" alt="Back" class="back">
-              </div>
-              <div class="card_div">
-                <img src="back.jpeg" alt="Back" class="back">
-              </div>
-              <div class="card_div">
-                <img src="back.jpeg" alt="Back" class="back">
-              </div>
-              <div class="card_div">
-                <img src="back.jpeg" alt="Back" class="back">
-              </div>
-            </div> 
-            <div class="card_stack">
-              <div class="card_div">
-                <img src="back.jpeg" alt="Back" class="back">
-                <div class="card_text">2</div>
-              </div>
-            </div>
-          </div> 
-          <div class="player">
-            <div class="player_text">Grog</div>
-            <div class="card_row">
-              <div class="card_div">
-                <img src="back.jpeg" alt="Back" class="back">
-              </div>
-              <div class="card_div">
-                <img src="back.jpeg" alt="Back" class="back">
-              </div>
-              <div class="card_div">
-                <img src="back.jpeg" alt="Back" class="back">
-              </div>
-              <div class="card_div">
-                <img src="back.jpeg" alt="Back" class="back">
-              </div>
-            </div> 
-            <div class="card_stack">
-              <div class="card_div">
-                <img src="back.jpeg" alt="Back" class="back">
-                <div class="card_text">2</div>
-              </div>
-            </div>
-          </div> 
-        </div>
+        <div class="player_list" id="player_list"></div>
       </div>
       <div class="right"> 
         <div class="board">
@@ -308,13 +291,13 @@ window.onload = main;
           </div>
           <div class="card_row">
             <div class="card_div">
-                <img src="rose.jpeg" alt="rose" class="rose">
+                <img src="rose.png" alt="rose" class="rose">
               </div>
               <div class="card_div">
-                <img src="rose.jpeg" alt="rose" class="rose">
+                <img src="rose.png" alt="rose" class="rose">
               </div>
               <div class="card_div">
-                <img src="skull.jpeg" alt="skull" class="skull">
+                <img src="skull.png" alt="skull" class="skull">
               </div>
           </div>
         </div>
@@ -327,10 +310,10 @@ window.onload = main;
           </div>
           <div class="card_row">
             <div class="card_div">
-                <img src="rose.jpeg" alt="rose" class="rose">
+                <img src="rose.png" alt="rose" class="rose">
               </div>
               <div class="card_div">
-                <img src="rose.jpeg" alt="rose" class="rose">
+                <img src="rose.png" alt="rose" class="rose">
               </div>
           </div>
           <div class="hand_text">
@@ -338,10 +321,10 @@ window.onload = main;
           </div>
           <div class="card_row">
             <div class="card_div">
-              <img src="rose.jpeg" alt="rose" class="rose">
+              <img src="rose.png" alt="rose" class="rose">
             </div>
             <div class="card_div">
-              <img src="skull.jpeg" alt="skull" class="skull">
+              <img src="skull.png" alt="skull" class="skull">
             </div>
           </div>
         </div>

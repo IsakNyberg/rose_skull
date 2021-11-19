@@ -58,7 +58,7 @@ def decode_frame(frame):
     payload_len = frame[1] - 128
     mask = frame[2:6]
     encoded_payload = frame[6: 6 + payload_len]
-    payload = bytearray(
+    payload = bytes(
         [encoded_payload[i] ^ mask[i % 4] for i in range(payload_len)]
     )
     return payload

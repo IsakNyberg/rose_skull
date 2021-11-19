@@ -32,6 +32,11 @@ main = function() {
     }
   };
 
+  function send(command, arg) {
+    socket.send(String.fromCharCode(command) + String.fromCharCode(arg));
+    console.log("command: " + command + " arg " + arg);
+  }
+
   function show_message(msg) {
     //document.getElementById("message").innerHTML = "";  // delete buttons
     msg = msg.substring(1);
@@ -55,17 +60,22 @@ main = function() {
     var num_players = unpack1[3];
     var num_flipped = unpack1[4];
 
+    // clear all occupied divs
     var player_list = document.getElementById('player_list');
     while(player_list.firstChild) {
       player_list.removeChild(player_list.lastChild);
     }
-    var board = document.getElementById('placed_card_row');
-    while(board.firstChild) {
-      board.removeChild(board.lastChild);
+    var placed = document.getElementById('placed_card_row');
+    while(placed.firstChild) {
+      placed.removeChild(placed.lastChild);
     }
     var hand = document.getElementById('hand_card_row');
     while(hand.firstChild) {
       hand.removeChild(hand.lastChild);
+    }
+    var board = document.getElementById('board_card_row');
+    while(board.firstChild) {
+      board.removeChild(board.lastChild);
     }
 
     /*
@@ -96,7 +106,23 @@ main = function() {
     }
     draw_own_player(own_turn, bytes.slice(end));
 
+    var butt = document.getElementById("bet_button");
+    butt.onclick = function() {bet()};
+    butt = document.getElementById("pass_button");
+    butt.onclick = function() {send(2,0)};
+    butt = document.getElementById("hand_text");
+    butt.onclick = function(){send(3, 0)};
+
   };
+
+  function bet(){
+    let bet_amount = document.getElementById("bet_ambout").value;
+    if (!isNaN(bet_amount)){
+      send(1, bet_amount);
+    } else {
+      document.getElementById('message').innerHTML = "Invalid bet.";
+    }
+  }
 
   function draw_player(bytes, index, current_player_index) {
     /*
@@ -138,6 +164,7 @@ main = function() {
 
     //player div
     var player_div = document.createElement('div');
+    player_div.onclick = function(){send(3, index+1)};
     player_div.className = 'player';
     player_list.appendChild(player_div);
 
@@ -148,10 +175,14 @@ main = function() {
     player_text_div.style.color = name_colour;
     player_div.appendChild(player_text_div);
 
+    //player cards div
+    var player_cards_div = document.createElement('div');
+    player_cards_div.className = 'player_cards_div';
+    player_div.appendChild(player_cards_div);
     //player card row
     var card_row = document.createElement('div');
     card_row.className = 'card_row';
-    player_div.appendChild(card_row);
+    player_cards_div.appendChild(card_row);
     //player cards in row
     for (let i = 0; i < hand_len; i++){
       var card_div = document.createElement('div');
@@ -163,21 +194,22 @@ main = function() {
       card_image.className = 'back';
       card_div.appendChild(card_image);
     }
-
-    //card stack
-    var card_stack_div = document.createElement('div');
-    card_stack_div.className = 'card_stack';
-    player_div.appendChild(card_stack_div);
-    //card stack image
-    var card_image = document.createElement("IMG");
-    card_image.src = 'back.png';
-    card_image.className = 'back';
-    card_stack_div.appendChild(card_image);
-    // card stack number
-    var card_text_div = document.createElement('div');
-    card_text_div.className = 'card_text';
-    card_text_div.innerHTML = board_len.toString();
-    card_stack_div.appendChild(card_text_div);
+    if (board_len > 0 || true){
+      //card stack
+      var card_stack_div = document.createElement('div');
+      card_stack_div.className = 'card_stack';
+      player_cards_div.appendChild(card_stack_div);
+      //card stack image
+      var card_image = document.createElement("IMG");
+      card_image.src = 'back.png';
+      card_image.className = 'back';
+      card_stack_div.appendChild(card_image);
+      // card stack number
+      var card_text_div = document.createElement('div');
+      card_text_div.className = 'card_text';
+      card_text_div.innerHTML = board_len.toString();
+      card_stack_div.appendChild(card_text_div);
+    }
   };
 
   function draw_flipped(bytes) {
@@ -268,6 +300,7 @@ main = function() {
     for (let i = 0; i < hand_len; i++) {
       var card_div = document.createElement('div');
       card_div.className = 'card_div';
+      card_div.onclick = function(){send(0, i)}; //function
       card_row.appendChild(card_div);
 
       var card_image = document.createElement("IMG");
@@ -309,6 +342,7 @@ window.onload = main;
       font-size: 20px; 
       position: relative;
       color: white;
+      z-index: 1;
     }
     .board{
     }
@@ -319,8 +353,16 @@ window.onload = main;
       color: white;
     }
     .player_list{
+      position: relative;
     }
     .player {
+      width: 100%;
+      
+    }
+    .player_cards_div{
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
     .card_row {
       width: 275px;
@@ -331,9 +373,17 @@ window.onload = main;
     .card_stack {
       width: 60px;
       height: 75px;
-      float: left;
+      float: right;
       display: block; 
       border-spacing: 5px;
+      z-index: 1;
+    }
+    .player_text {
+      width: 100%;
+      font-family: "Lucida Console", "Courier New", monospace;
+      font-size: 30px; 
+      /*float: right;*/
+      color: white;
     }
     .card_div{
       width:50px;
@@ -343,7 +393,7 @@ window.onload = main;
       margin-bottom: 5px;
       margin-right: 5px;
       margin-left: 0px;
-      z-index: 2;
+      z-index: 100;
     }
     .card_text {
       font-family: "Lucida Console", "Courier New", monospace;
@@ -352,15 +402,9 @@ window.onload = main;
       color: white;
       top: -93%;
       left: 18%;
+      z-index: 50;
     }
-    .player_text {
-      font-family: "Lucida Console", "Courier New", monospace;
-      font-size: 50px; 
-      position: relative;
-      color: white;
-      top: -50%;
-      left: 30%;
-    }
+    
     .rose {
       width:50px;
       height:75px;
@@ -386,6 +430,12 @@ window.onload = main;
         <div class="board" id="board">
           <div class="board_text" id="game_status"></div>
           <div class="board_text" id="message"></div>
+          <div class="board_text">
+            Bet amount: 
+            <input type="text" id="bet_ambout" name="fname">
+            <button id="bet_button">Bet</button>
+          </div>
+          <button id="pass_button">Pass</button>
           <div class="board_text" id="current_bet"></div>
           <div class="card_row" id="board_card_row"></div>
         </div>
@@ -393,7 +443,7 @@ window.onload = main;
           <div class="player_text" id="player_name"></div>
           <div class="hand_text">Placed:</div>
           <div class="card_row" id="placed_card_row"></div>
-          <div class="hand_text">Hand:</div>
+          <div class="hand_text" id="hand_text">Hand:</div>
           <div class="card_row" id="hand_card_row"></div>
         </div>
       </div>

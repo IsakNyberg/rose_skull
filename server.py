@@ -15,7 +15,7 @@ TCPsocket = None
 while True:
     try:
         TCPsocket = socket.socket(family=socket.AF_INET, type=socket.SOCK_STREAM)
-        TCPsocket.bind((socket.gethostname(), localPort))
+        TCPsocket.bind((localIP, localPort))
         break
     except OSError as e:
         print(e)

@@ -17,6 +17,7 @@ class Player:
         random.shuffle(self.hand)
         self.board = []
         self.score = 0
+        self.hidden_card = []
         self.has_passed = False
 
         if spectator:
@@ -32,9 +33,13 @@ class Player:
     def alive(self):
         return bool(len(self.hand) + len(self.board))
 
+    @property
+    def has_won(self):
+        return self.score >= WIN_SCORE
+
     def give_point(self):
         self.score += 1
-        return self.score == WIN_SCORE
+        return self.has_won
 
     def place(self, index):
         if len(self.hand) == 0:
@@ -42,11 +47,13 @@ class Player:
         try:
             self.board.insert(0, self.hand.pop(index))
         except IndexError:
-            raise GameError(f'No card in that position {index}')
+            raise GameError(f'No card in that position.')
 
     def reset(self):
-        for i in range(len(self.board)):
+        for _ in range(len(self.board)):
             self.hand.append(self.board.pop())
+        for _ in range(len(self.hidden_card)):
+            self.hand.append(self.hidden_card.pop())
         random.shuffle(self.hand)
 
         self.has_passed = len(self.hand) == 0  # if player has no cards remove
@@ -54,10 +61,10 @@ class Player:
     def flip(self):
         try:
             card = self.board.pop(0)
-            self.hand.append(card)
+            self.hidden_card.append(card)
             return card
         except IndexError:
-            raise GameError('cannot flip when player has no card on board')
+            raise GameError(f'{self.name} has no on board.')
 
     def penalty(self):
         if len(self.board) != 0:

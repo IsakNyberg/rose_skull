@@ -12,6 +12,8 @@ path_lookup = {
     "/rose.png": "page/rose.png",
     "/skull.png": "page/skull.png",
     "/favicon.ico": "page/favicon.ico",
+    "/invisible.png" : "page/invisible.png",
+    "/background.png" : "page/background.png",
 }
 
 content_lookup = {
@@ -20,8 +22,10 @@ content_lookup = {
     "/blank.png" : "image/png",
     "/rose.png" : "image/png",
     "/skull.png" : "image/png",
+    "/invisible.png" : "image/png",
     "/" : "text/html",
-    "/favicon.ico" : "image/x-icon"
+    "/favicon.ico" : "image/x-icon",
+    "/background.png" : "image/png",
 }
 
 class MyServer(BaseHTTPRequestHandler):

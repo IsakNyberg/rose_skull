@@ -4,17 +4,41 @@ import time
 
 hostName = "192.168.10.150"
 serverPort = 7878
+path_lookup = {
+    "/": "page/index.html",
+    "/jspack.js": "page/jspack.js",
+    "/back.png": "page/back.png",
+    "/blank.png": "page/blank.png",
+    "/rose.png": "page/rose.png",
+    "/skull.png": "page/skull.png",
+    "/favicon.ico": "page/favicon.ico",
+}
+
+content_lookup = {
+    "/jspack.js" : "text/jscript",
+    "/back.png" : "image/png",
+    "/blank.png" : "image/png",
+    "/rose.png" : "image/png",
+    "/skull.png" : "image/png",
+    "/" : "text/html",
+    "/favicon.ico" : "image/x-icon"
+}
 
 class MyServer(BaseHTTPRequestHandler):
     def do_GET(self):
+        try:
+            in_file = open(path_lookup[self.path], "rb") # opening for [r]eading as [b]inary
+            content_type = content_lookup[self.path]
+            data = in_file.read()
+        except KeyError:
+            self.send_response(400)
+            self.send_header("Content-type", "text/plain")
+            self.end_headers()
+            return
+
         self.send_response(200)
-        self.send_header("Content-type", "text/html")
+        self.send_header("Content-type", content_type)
         self.end_headers()
-        if self.path == "/":
-            in_file = open(f"page/index.html", "rb") # opening for [r]eading as [b]inary
-        else:
-            in_file = open(f"page/{self.path}", "rb") # opening for [r]eading as [b]inary
-        data = in_file.read() # if you only wanted to read 512 bytes, do .read(512)
         in_file.close()
         self.wfile.write(data)
 

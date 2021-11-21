@@ -21,6 +21,8 @@ class Game:
         self.flipped_cards = []
         self.intermission = 0
 
+        self.turn = 0
+
     def __str__(self):
         res = f'Ongoing: {self.ongoing}\n'
         for player in self.players:
@@ -40,6 +42,12 @@ class Game:
     @property
     def current_player_index(self):
         return self._current_player
+
+    def check_win(self):
+        for player in self.players:
+            if player.has_won:
+                return True
+        return False
 
     def not_passed_players(self):
         amount = 0
@@ -73,12 +81,13 @@ class Game:
 
     def start(self):
         self.ongoing = True
+        self.turn += 1
 
     def bet(self, amount):
         if amount <= self.current_bet:
-            raise GameError('Cannot bet lower or equal to current bet')
+            raise GameError(f'Bet higher than {self.current_bet}')
         if amount > self.number_placed_cards():
-            raise GameError('cannot bet more than the number of placed cards')
+            raise GameError(f'Bet lower than {self.number_placed_cards()+1}')
         self.current_bet = amount
 
         if amount == self.number_placed_cards():
@@ -94,7 +103,7 @@ class Game:
         try:
             card = self.players[index].flip()
         except IndexError:
-            raise GameError('Flipped card does not exist')
+            raise GameError(f'Player {self.players[index].name} has no cards')
 
         self.flipped += 1
         self.flipped_cards.append(card)
@@ -104,13 +113,9 @@ class Game:
             raise GameError(f'Skull flipped by {self.current_player.name}')
         else:
             if self.flipped == self.current_bet:
-                if self.current_player.give_point():  # give point & checks win
-                    self.ongoing = False
-                    raise GameError(f'Game won by {self.current_player.name}')
-                else:
-                    self.intermission = 1
-                    raise GameError(
-                        f'Point scored by {self.current_player.name}')
+                self.current_player.give_point()  # give point & checks win
+                self.intermission = 1
+                raise GameError(f'Point scored by {self.current_player.name}')
 
     def next_player(self, command, command_argument):
         if command not in (PLACE, BET, PASS, FLIP):
@@ -125,6 +130,13 @@ class Game:
             self.intermission = 0
             command = NONE
 
+        if self.alive_players() == 1:
+            self.ongoing = False
+            raise GameError(f'Last player standing {self.current_player.name}')
+        elif self.check_win():
+            self.ongoing = False
+            raise GameError(f'Game won by {self.current_player.name}')
+
         if command == PLACE:
             if self.current_bet > 0:
                 raise GameError('Cannot place new card if a bet has begun.')
@@ -137,7 +149,7 @@ class Game:
 
         elif command == PASS:
             if self.current_bet == 0:
-                raise GameError('Cannot pass unless a bet has begun.')
+                raise GameError('Cannot pass before a bet has begun.')
             if self.not_passed_players() == 1:
                 raise GameError('Cannot pass after a bet has finished.')
             if self._current_player == self.last_better:
@@ -154,13 +166,9 @@ class Game:
         while True:
             self._current_player += 1
             self._current_player %= len(self.players)
-
             if not self.current_player.has_passed:
+                self.turn += 1
                 break
-
-        if self.alive_players() == 1:
-            self.ongoing = False
-            raise GameError(f'Last player standing {self.current_player.name}')
 
     def to_bytes(self, caller_index):
         # 5 bytes of GAME info
@@ -185,29 +193,3 @@ class Game:
 
         res += self.players[caller_index].to_bytes(False)  # not hidden
         return res
-"""
-    def to_bytes_backup(self, caller_index):
-        raise NotImplementedError
-        # 5 bytes of GAME info
-        # 8 * (number of players) bytes of players
-        # 1 * (number of flipped cards)
-        # 8 + (0 to 4) bytes os own player
-        # rest is own player
-        res = bytearray()
-        res += pack(
-            '?BBBB',  # docs.python.org/3/library/struct.html#format-characters
-            self.ongoing,
-            self._current_player,
-            self.current_bet,
-            len(self.players),
-            len(self.flipped_cards),
-        )
-        for player in self.players:
-            res += player.to_bytes(True)  # hidden
-
-        for card in self.flipped_cards:
-            res += pack('B', card)
-
-        res += self.players[caller_index].to_bytes(False)  # not hidden
-        return res
-"""

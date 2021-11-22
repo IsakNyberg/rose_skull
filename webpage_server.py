@@ -1,9 +1,8 @@
 # Python 3 server example
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import time
+import sys
 
-hostName = "192.168.10.150"
-serverPort = 7878
 path_lookup = {
     "/": "page/index.html",
     "/jspack.js": "page/jspack.js",
@@ -28,10 +27,11 @@ content_lookup = {
     "/background.png" : "image/png",
 }
 
+
 class MyServer(BaseHTTPRequestHandler):
     def do_GET(self):
         try:
-            in_file = open(path_lookup[self.path], "rb") # opening for [r]eading as [b]inary
+            in_file = open(path_lookup[self.path], "rb")
             content_type = content_lookup[self.path]
             data = in_file.read()
         except KeyError:
@@ -46,7 +46,14 @@ class MyServer(BaseHTTPRequestHandler):
         in_file.close()
         self.wfile.write(data)
 
+
 if __name__ == "__main__":
+    if len(sys.argv) != 3:
+        print('usage: python3 webpage_server.py local_ip port')
+        sys.exit()
+
+    hostName = sys.argv[1]
+    serverPort = int(sys.argv[2])
     webServer = HTTPServer((hostName, serverPort), MyServer)
     print("Server started http://%s:%s" % (hostName, serverPort))
 

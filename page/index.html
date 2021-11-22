@@ -6,13 +6,19 @@
 
 <script src="jspack.js"></script>
 <script type="text/javascript">
-main = function() {
-  var name = prompt("Name:", "");
-  const socket = new WebSocket('ws://85.229.19.61:63834/ws/' + name);
-  socket.onopen = function() {
+  main = function() {
+    var name = prompt("Name:", "");
+    var ip = location.host.split(":")[0] + ":9092";
+    var ip_port = prompt("IP and port:", ip);
+    var ip_port_format = 'ws://' + ip_port + /ws/ + name;
+    const socket = new WebSocket(ip_port_format);
+    socket.onopen = function() {
     console.log("socket opened");
   };
 
+  console_send = function(a, b){
+    send(a, b);
+  }
   socket.onerror = function(e) {
     console.log('websocket error! code: ' + e.code + ' reason: ' + e.reason);
     clear_and_show('websocket error');
@@ -121,7 +127,7 @@ main = function() {
     butt = document.getElementById("pass_button");
     butt.onclick = function() {send(2,0)};
     butt = document.getElementById("hand_text");
-    butt.onclick = function(){send(3, 0)};
+    butt.onclick = function() {send(3, 0)};
   };
 
   function bet(){

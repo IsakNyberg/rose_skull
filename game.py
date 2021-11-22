@@ -80,8 +80,19 @@ class Game:
         self.players.append(Player(name, spectator=self.ongoing))
 
     def start(self):
-        self.ongoing = True
-        self.turn += 1
+        if not self.ongoing:
+            self.ongoing = True
+            self._current_player = 0
+            self.current_bet = 0
+            self.flipped = 0
+            self.last_better = -1
+            self.flipped_cards = []
+            self.intermission = 0
+            self.turn = 1
+            for player in self.players:
+                player.start()
+        else:
+            raise GameError(f'Game is already ongoing round: {self.turn}')
 
     def bet(self, amount):
         if amount <= self.current_bet:
@@ -123,6 +134,7 @@ class Game:
         if not self.ongoing:
             raise GameError('Game has not started yet')
 
+        self.turn += 1
         if self.intermission:
             self.round_reset()
             if self.intermission == -1:
@@ -167,7 +179,6 @@ class Game:
             self._current_player += 1
             self._current_player %= len(self.players)
             if not self.current_player.has_passed:
-                self.turn += 1
                 break
 
     def to_bytes(self, caller_index):

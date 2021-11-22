@@ -37,6 +37,14 @@ class Player:
     def has_won(self):
         return self.score >= WIN_SCORE
 
+    def start(self):
+        self.hand = [ROSE, ROSE, ROSE, SKULL]
+        random.shuffle(self.hand)
+        self.board = []
+        self.score = 0
+        self.hidden_card = []
+        self.has_passed = False
+
     def give_point(self):
         self.score += 1
         return self.has_won

@@ -23,32 +23,19 @@ def new_socket_handler(new_connection):
         return ''
 
 
-def socket_handler(socket, id, game, game_messages):
-    waiting_frame = encode_frame(b'2waiting')
-    try:
-        while game.turn == 0:
-            socket.sendall(waiting_frame)
-            socket.setblocking(False)
-            try:
-                message = decode_frame(socket.recv(1024))
-                print(message)
-                if message == b'dd':  # message == 100 100
-                    print('start')
-                    GAME.start()
-                    break
-            except OSError:
-                sleep(1)
-                pass
-        while game.ongoing:
+def socket_handler(socket, id, game, game_messages, hard_reset):
+    while not hard_reset[0]:
+        try:
             turn = game.turn
             frame1 = encode_frame(b'1' + game.to_bytes(id))
             socket.sendall(frame1)
             frame2 = encode_frame(b'2' + game_messages[-1].to_bytes())
             socket.sendall(frame2)
 
-            if game.current_player_index != id and game.ongoing:
-                while game.ongoing and game.turn == turn:
-                    sleep(1)  # apparently this makes the thread yield
+            sleep(0.5)  # apparently this makes the thread yield
+            if game.current_player_index != id:
+                while game.turn == turn and game.turn != 0:
+                    sleep(0.5)  # apparently this makes the thread yield
                 continue
 
             socket.setblocking(False)
@@ -60,31 +47,52 @@ def socket_handler(socket, id, game, game_messages):
                 # [Errno 35] Resource temporarily unavailable
             socket.setblocking(True)
 
-            socket.settimeout(60*10)
+            socket.settimeout(45)
             message = decode_frame(socket.recv(1024))
             print(id, message, game_messages[-1])
             if len(message) != 2:
-                frame = encode_frame(b'2' + b'Invalid bet')
+                frame = encode_frame(b'2' + b'Invalid command')
                 socket.sendall(frame)
-                print('Message too long')
-                continue
+                print(f'{id} Message too long')
 
-            command, arg = unpack('BB', message)
-            try:
-                GAME.next_player(command, arg)
-            except GameError as message:
-                game_messages.append(message)
-                frame = encode_frame(b'2' + message.to_bytes())
-                socket.sendall(frame)
-    except IndexError:
-        print(
-            'Index error, this can mean somebody rejoined the game and'
-            'this is a thread that should terminate. THREAD: ', id
-        )
-        return
-    except BrokenPipeError:
-        print('Pipe broke. THREAD: ', id)
-        return
+            elif message == b'dd':  # message == 100 100
+                print('start')
+                game.start()
+            elif message == b'ee':  # message == 101 101
+                hard_reset[0] = True
+                print('hard reset')
+            else:
+                command, arg = unpack('BB', message)
+                game.next_player(command, arg)
+
+        except GameError as message:
+            game_messages.append(message)
+            continue
+
+        except OSError:
+            if game.turn == 0:
+                continue
+            elif game.current_player_index == id:
+                game_messages.append(
+                    GameError(
+                        f'Random move played by {game.current_player.name}'
+                    )
+                )
+                command, arg = game.make_random_move()
+                print(f'random move {id} cmd{command} arg{arg}')
+            else:
+                print(f'socket {id} timeout when it was not allowed to.')
+                return
+
+        except IndexError:
+            print(
+                'Index error, this can mean somebody rejoined the game and'
+                'this is a thread that should terminate. THREAD: ', id
+            )
+            return
+        except (BrokenPipeError, ConnectionResetError):
+            print('Pipe broke. THREAD: ', id)
+            return
 
 
 if __name__ == '__main__':
@@ -98,8 +106,10 @@ if __name__ == '__main__':
     TCPsocket = None
     while True:
         try:
-            TCPsocket = socket.socket(family=socket.AF_INET,
-                                      type=socket.SOCK_STREAM)
+            TCPsocket = socket.socket(
+                family=socket.AF_INET,
+                type=socket.SOCK_STREAM
+            )
             TCPsocket.bind((localIP, localPort))
             break
         except OSError as e:
@@ -110,14 +120,20 @@ if __name__ == '__main__':
 
     try:
         while True:
+            HARD_RESET = [False]
             GAME = Game()
             THREADS = []
             NAMES = []
             GAME_MESSAGES = [GameError('Waiting for game to start.')]
             print('New game instance')
-            while len(THREADS) < 20:
+            while True:
                 TCPsocket.listen(bufferSize)
                 new_conn, address = TCPsocket.accept()
+                if not HARD_RESET[0]:
+                    print('clearing all threads')
+                    for thread in THREADS:
+                        thread.join()
+                    break
                 print(f'New connection {len(THREADS)}: {address}', end=" ")
                 socket_name = new_socket_handler(new_conn)
                 if socket_name in NAMES:
@@ -125,7 +141,7 @@ if __name__ == '__main__':
                     index = socket_name.index(socket_name)
                     th = threading.Thread(
                         target=socket_handler,
-                        args=(new_conn, index, GAME, GAME_MESSAGES)
+                        args=(new_conn, index, GAME, GAME_MESSAGES, HARD_RESET)
                     )
                     th.start()
                     THREADS[index].join()
@@ -136,19 +152,21 @@ if __name__ == '__main__':
                     NAMES.append(socket_name)
                     th = threading.Thread(
                         target=socket_handler,
-                        args=(new_conn, len(GAME.players)-1, GAME, GAME_MESSAGES)
+                        args=(
+                            new_conn,
+                            len(GAME.players)-1,
+                            GAME,
+                            GAME_MESSAGES,
+                            HARD_RESET
+                        )
                     )
                     th.start()
                     THREADS.append(th)
                 else:
                     print('Fail')
 
-                if not GAME.ongoing and GAME.turn > 0:
-                    break
-
-            while GAME.ongoing:
-                sleep(0)  # yield
-            sleep(10)
+            for thread in THREADS:
+                thread.join()
 
     except Exception as e:
         print(e)

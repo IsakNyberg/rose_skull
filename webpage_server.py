@@ -54,6 +54,7 @@ if __name__ == "__main__":
 
     hostName = sys.argv[1]
     serverPort = int(sys.argv[2])
+    print(f'Hostname: {hostName}, Port:{serverPort}')
     webServer = HTTPServer((hostName, serverPort), MyServer)
     print("Server started http://%s:%s" % (hostName, serverPort))
 

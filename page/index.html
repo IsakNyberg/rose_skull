@@ -16,9 +16,14 @@
     console.log("socket opened");
   };
 
-  console_send = function(a, b){
-    send(a, b);
+  start = function(){
+    send(100, 100);
   }
+
+  hard_reset = function(){
+    send(101, 101);
+  }
+  
   socket.onerror = function(e) {
     console.log('websocket error! code: ' + e.code + ' reason: ' + e.reason);
     clear_and_show('websocket error');

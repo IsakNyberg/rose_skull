@@ -129,7 +129,7 @@ if __name__ == '__main__':
             while True:
                 TCPsocket.listen(bufferSize)
                 new_conn, address = TCPsocket.accept()
-                if not HARD_RESET[0]:
+                if HARD_RESET[0]:
                     print('clearing all threads')
                     for thread in THREADS:
                         thread.join()
